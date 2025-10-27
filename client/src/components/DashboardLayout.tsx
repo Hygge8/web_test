@@ -21,15 +21,19 @@ import {
 } from "@/components/ui/sidebar";
 import { APP_LOGO, APP_TITLE, getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, LogOut, PanelLeft, Users } from "lucide-react";
+import { Brain, FileText, Home, LayoutDashboard, LineChart, LogOut, MessageSquare, Mic, PanelLeft, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 
 const menuItems = [
-  { icon: LayoutDashboard, label: "Page 1", path: "/" },
-  { icon: Users, label: "Page 2", path: "/some-path" },
+  { icon: Home, label: "首页", path: "/" },
+  { icon: MessageSquare, label: "AI对话", path: "/chat" },
+  { icon: Brain, label: "内容生成", path: "/generate" },
+  { icon: Mic, label: "语音转文字", path: "/transcription" },
+  { icon: LineChart, label: "数据分析", path: "/analysis" },
+  { icon: FileText, label: "历史记录", path: "/history" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
