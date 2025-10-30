@@ -50,9 +50,9 @@
 
 ## 仓库规范化
 
-- [ ] 创建完善的README.md文档
-- [ ] 添加LICENSE文件
-- [ ] 创建CONTRIBUTING.md贡献指南
-- [ ] 添加项目截图和演示
-- [ ] 创建开发分支并合并
+- [x] 创建完善的README.md文档
+- [x] 添加LICENSE文件
+- [x] 创建CONTRIBUTING.md贡献指南
+- [x] 添加CHANGELOG.md更新日志
+- [x] 创建开发分支并合并
 
