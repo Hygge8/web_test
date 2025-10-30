@@ -1,0 +1,137 @@
+# GitHub工作流配置指南
+
+由于GitHub App权限限制,工作流文件无法通过自动化推送。请手动添加以下工作流文件。
+
+## CI工作流
+
+创建文件: `.github/workflows/ci.yml`
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    name: 代码检查
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置 Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        
+    - name: 设置 pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 10
+        
+    - name: 获取 pnpm store 目录
+      id: pnpm-cache
+      shell: bash
+      run: |
+        echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+        
+    - name: 设置 pnpm 缓存
+      uses: actions/cache@v3
+      with:
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-pnpm-store-
+          
+    - name: 安装依赖
+      run: pnpm install --frozen-lockfile
+      
+    - name: 代码格式检查
+      run: pnpm format:check || true
+      
+    - name: TypeScript 类型检查
+      run: pnpm type-check || true
+
+  test:
+    name: 测试
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置 Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        
+    - name: 设置 pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 10
+        
+    - name: 安装依赖
+      run: pnpm install --frozen-lockfile
+      
+    - name: 运行测试
+      run: pnpm test || true
+
+  build:
+    name: 构建
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      
+    - name: 设置 Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        
+    - name: 设置 pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 10
+        
+    - name: 安装依赖
+      run: pnpm install --frozen-lockfile
+      
+    - name: 构建项目
+      run: pnpm build
+      
+    - name: 上传构建产物
+      uses: actions/upload-artifact@v3
+      with:
+        name: dist
+        path: dist/
+        retention-days: 7
+```
+
+## 添加步骤
+
+1. 在GitHub仓库页面,点击"Add file" → "Create new file"
+2. 输入文件路径: `.github/workflows/ci.yml`
+3. 粘贴上述内容
+4. 提交文件
+
+## 其他推荐工作流
+
+### 自动发布
+
+创建 `.github/workflows/release.yml` 用于自动发布版本。
+
+### 依赖更新
+
+创建 `.github/workflows/dependency-update.yml` 用于自动更新依赖。
+
+### 代码质量检查
+
+集成 CodeQL、SonarCloud 等代码质量工具。
+
