@@ -173,6 +173,9 @@ export const appRouter = router({
       .input(z.object({
         title: z.string(),
         data: z.string(),
+        dataUrl: z.string().optional(),
+        fileName: z.string().optional(),
+        fileType: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const response = await invokeLLM({
@@ -208,6 +211,10 @@ export const appRouter = router({
         const analysisId = await db.createDataAnalysis({
           userId: ctx.user.id,
           title: input.title,
+          dataUrl: input.dataUrl,
+          fileName: input.fileName,
+          fileType: input.fileType,
+          rawData: input.data,
           analysis,
           chartData,
         });
@@ -240,6 +247,21 @@ export const appRouter = router({
         const { url } = await storagePut(fileKey, buffer, input.contentType);
         
         return { url };
+      }),
+
+    uploadDataFile: protectedProcedure
+      .input(z.object({
+        filename: z.string(),
+        contentType: z.string(),
+        base64Data: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const buffer = Buffer.from(input.base64Data, 'base64');
+        const fileKey = `${ctx.user.id}/data/${Date.now()}-${input.filename}`;
+        
+        const { url } = await storagePut(fileKey, buffer, input.contentType);
+        
+        return { url, filename: input.filename, fileType: input.contentType };
       }),
   }),
 });
