@@ -8,11 +8,13 @@ import {
   generatedContent,
   transcriptions,
   dataAnalysis,
+  notifications,
   InsertConversation,
   InsertMessage,
   InsertGeneratedContent,
   InsertTranscription,
-  InsertDataAnalysis
+  InsertDataAnalysis,
+  InsertNotification
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -211,5 +213,43 @@ export async function getDataAnalysisById(id: number) {
   
   const result = await db.select().from(dataAnalysis).where(eq(dataAnalysis.id, id)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+// Notification functions
+export async function createNotification(notification: InsertNotification): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(notifications).values(notification);
+  return (result as any).insertId as number;
+}
+
+export async function getUserNotifications(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return db.select().from(notifications).where(eq(notifications.userId, userId)).orderBy(desc(notifications.createdAt));
+}
+
+export async function markNotificationAsRead(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(notifications).set({ isRead: 1 }).where(eq(notifications.id, id));
+}
+
+export async function deleteNotification(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.delete(notifications).where(eq(notifications.id, id));
+}
+
+export async function getUnreadNotificationCount(userId: number) {
+  const db = await getDb();
+  if (!db) return 0;
+  
+  const result = await db.select().from(notifications).where(and(eq(notifications.userId, userId), eq(notifications.isRead, 0)));
+  return result.length;
 }
 

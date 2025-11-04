@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 import { APP_LOGO, APP_TITLE, getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Brain, FileText, Home, LayoutDashboard, LineChart, LogOut, MessageSquare, Mic, PanelLeft, Users } from "lucide-react";
+import { Brain, FileText, Home, LayoutDashboard, LineChart, LogOut, MessageSquare, Mic, PanelLeft, Users, Bell } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -33,6 +33,7 @@ const menuItems = [
   { icon: Brain, label: "内容生成", path: "/generate" },
   { icon: Mic, label: "语音转文字", path: "/transcription" },
   { icon: LineChart, label: "数据分析", path: "/analysis" },
+  { icon: Bell, label: "通知", path: "/notifications" },
   { icon: FileText, label: "历史记录", path: "/history" },
 ];
 

@@ -95,3 +95,20 @@ export const dataAnalysis = mysqlTable("data_analysis", {
 export type DataAnalysis = typeof dataAnalysis.$inferSelect;
 export type InsertDataAnalysis = typeof dataAnalysis.$inferInsert;
 
+/**
+ * Notifications table
+ */
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  type: mysqlEnum("type", ["analysis_complete", "generation_complete", "transcription_complete", "system"]).notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  content: text("content").notNull(),
+  isRead: int("isRead").default(0).notNull(),
+  relatedId: int("relatedId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;
+

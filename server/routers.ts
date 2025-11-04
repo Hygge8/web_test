@@ -219,6 +219,14 @@ export const appRouter = router({
           chartData,
         });
 
+        await db.createNotification({
+          userId: ctx.user.id,
+          type: 'analysis_complete',
+          title: 'Data Analysis Complete',
+          content: `Your analysis has been completed`,
+          relatedId: analysisId,
+        });
+
         return { id: analysisId, analysis, chartData };
       }),
 
@@ -230,6 +238,30 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         return db.getDataAnalysisById(input.id);
+      }),
+  }),
+
+  notifications: router({
+    getNotifications: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUserNotifications(ctx.user.id);
+    }),
+
+    getUnreadCount: protectedProcedure.query(async ({ ctx }) => {
+      return db.getUnreadNotificationCount(ctx.user.id);
+    }),
+
+    markAsRead: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.markNotificationAsRead(input.id);
+        return { success: true };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await db.deleteNotification(input.id);
+        return { success: true };
       }),
   }),
 
