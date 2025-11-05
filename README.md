@@ -9,7 +9,7 @@
 
 一个功能完整的AI原生Web应用,集成了智能对话、内容生成、语音识别和数据分析等多种AI能力。
 
-[在线演示](#) | [功能特性](#功能特性) | [快速开始](#快速开始) | [技术栈](#技术栈)
+[🚀 在线演示](https://aiwebapp-jhbfakeb.manus.space) | [功能特性](#功能特性) | [快速开始](#快速开始) | [技术栈](#技术栈)
 
 </div>
 
@@ -94,6 +94,12 @@
 - **测试**: Vitest
 
 ## 🚀 快速开始
+
+### 在线演示
+
+无需安装,直接访问在线演示: **[https://aiwebapp-jhbfakeb.manus.space](https://aiwebapp-jhbfakeb.manus.space)**
+
+### 本地开发
 
 ### 前置要求
 
@@ -242,6 +248,13 @@ pnpm test
 
 #### 存储 (`storage`)
 - `storage.uploadAudio` - 上传音频文件
+- `storage.uploadDataFile` - 上传数据文件(CSV/Excel)
+
+#### 通知 (`notifications`)
+- `notifications.getNotifications` - 获取通知列表
+- `notifications.getUnreadCount` - 获取未读数量
+- `notifications.markAsRead` - 标记为已读
+- `notifications.delete` - 删除通知
 
 ## 🚢 部署
 
