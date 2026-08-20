@@ -41,3 +41,30 @@ jobs:
           -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
           CODE_SIGNING_ALLOWED=NO
           test
+
+      - name: Build unsigned iPhone app
+        run: >-
+          xcodebuild
+          -project HealthMi.xcodeproj
+          -scheme HealthMi
+          -configuration Release
+          -sdk iphoneos
+          -destination 'generic/platform=iOS'
+          -derivedDataPath build/DerivedData
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_REQUIRED=NO
+          build
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/DerivedData/Build/Products/Release-iphoneos/HealthMi.app build/Payload/
+          cd build
+          ditto -c -k --sequesterRsrc --keepParent Payload HealthMi-Sleep-unsigned.ipa
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: HealthMi-Sleep-unsigned-IPA
+          path: build/HealthMi-Sleep-unsigned.ipa
+          if-no-files-found: error
