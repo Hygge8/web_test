@@ -1,322 +1,146 @@
-# AI原生Web应用
+# HealthMi
 
-<div align="center">
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 
-![AI原生Web应用](https://img.shields.io/badge/AI-Native%20Web%20App-blue)
-![React](https://img.shields.io/badge/React-19-61dafb)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178c6)
-![License](https://img.shields.io/badge/license-MIT-green)
+把小米运动健康（Mi Fitness）云端的健康数据，写入 Apple 健康（HealthKit）的纯 iOS App。
 
-一个功能完整的AI原生Web应用,集成了智能对话、内容生成、语音识别和数据分析等多种AI能力。
+## 功能特性
 
-[🚀 在线演示](https://aiwebapp-jhbfakeb.manus.space) | [功能特性](#功能特性) | [快速开始](#快速开始) | [技术栈](#技术栈)
+- **9 类数据同步**：日常活动（步数/距离/卡路里）、心率（含静息）、睡眠（含分期）、血氧、呼吸频率、心率变异性、体重/体脂/BMI/肌肉量/基础代谢、运动记录（含心率）、压力
+- **多区域支持**：中国大陆 / 俄罗斯 / 欧洲 / 国际 / 新加坡 / 美国，自动适配 API 域名和时区
+- **增量同步 + 回填**：按类型独立记录游标，增量只拉新数据；支持 7/30/90/全部天数强制回填
+- **后台自动同步**：`BGAppRefreshTask` 后台周期增量同步，失败时发送本地通知
+- **Swift Charts 趋势图**：7 天步数/心率/睡眠/HRV 趋势可视化
+- **睡眠模式分析**：30 天睡眠趋势分、平均时长/效率、入睡与起床规律、夜间清醒、分期结构和个性化提示
+- **每日详情页**：点击趋势图中任一天查看当日全部数据 + 压力记录
+- **同步历史日志**：持久化每次同步的结果（成功/失败/拉取数/新增数），自动裁剪 200 条
+- **数据导出**：一键导出最近 7 天每日数据为 CSV，通过系统分享面板发送
+- **快捷指令**：通过 Siri 或快捷指令触发同步（"同步 HealthMi 健康数据"）
+- **压力数据展示**：从小米云端读取 stress key，存入 App 内 SwiftData 展示（HealthKit 无对应类型）
+- **WebView 登录**：App 内 WKWebView 登录小米账号页面，自动捕获 Cookie
 
-</div>
+## 原理
 
----
+`HealthMi` 用 Swift 重新实现了已验证的开源工具 [mi-fitness-mcp-cn](tools/mi-fitness-mcp-cn) 的取数逻辑：
 
-## 📋 目录
+1. **登录**：用小米账号 `userId` / `passToken`（account.xiaomi.com 的 Cookie）经 `serviceLogin` 换取 `ssecurity` 与会话 Cookie；
+2. **签名请求**：每个请求用 `signed_nonce = SHA256(ssecurity||nonce)` 做 RC4 加密 + SHA1 签名，调用 `hlth.io.mi.com` 的 `get_fitness_data_by_time` / `get_sport_records_by_time`；
+3. **数据映射**：步数/距离/卡路里、心率（含静息）、睡眠（含分期）、血氧、呼吸频率、心率变异性、体重/体脂/BMI/肌肉量/基础代谢、运动记录、压力 → HealthKit 类型（压力无对应类型，存 App 内）；
+4. **幂等写入**：每个样本带 `HKMetadataKeyExternalUUID`，按类型+时间区间查重后**一次批量保存**（复刻 [healthloom.app](https://github.com/wpowiertowski/healthloom.app) 的 `HealthKitWriter` 模式）。
 
-- [功能特性](#功能特性)
-- [技术栈](#技术栈)
-- [快速开始](#快速开始)
-- [项目结构](#项目结构)
-- [环境变量](#环境变量)
-- [开发指南](#开发指南)
-- [API文档](#api文档)
-- [部署](#部署)
-- [贡献指南](#贡献指南)
-- [许可证](#许可证)
+## 数据映射
 
-## ✨ 功能特性
+| 小米数据 | Apple Health 类型 | 换算 |
+|---|---|---|
+| 步数 | `stepCount` | count |
+| 距离 | `distanceWalkingRunning` | m |
+| 活动卡路里 | `activeEnergyBurned` | kcal |
+| 心率采样 / 静息 | `heartRate` / `restingHeartRate` | count/min |
+| 睡眠 | `sleepAnalysis` | inBed + 分期（awake / AsleepCore / AsleepDeep / AsleepREM），不写整晚 asleep 聚合 |
+| 血氧 | `oxygenSaturation` | **百分比 → 分数**（98% → 0.98） |
+| 呼吸频率（睡眠均値） | `respiratoryRate` | count/min |
+| 心率变异性（睡眠 HRV） | `heartRateVariabilitySDNN` | ms |
+| 体重 / 体脂 / BMI / 肌肉量 / 基础代谢 | `bodyMass` / `bodyFatPercentage` / `bodyMassIndex` / `leanBodyMass` / `basalEnergyBurned` | 体脂百分比 → 分数 |
+| 运动 | `HKWorkout` | 关键词映射 `HKWorkoutActivityType`，关联平均/最大心率样本 |
+| 压力 | App 内 SwiftData 展示 | HealthKit 无对应类型，存 App 内不写入 HealthKit |
 
-### 🤖 AI智能对话
-- 支持创建多个对话会话
-- 智能上下文理解和记忆
-- 实时流式响应
-- 对话历史自动保存
+> abnormal_heart_beat 暂无 HealthKit 对应类型，未纳入（数据仍可从小米云端读到）。
 
-### 🎨 智能内容生成
-- **文本生成**: 使用先进的LLM模型生成高质量文本内容
-- **图像生成**: 基于文本描述生成精美图像
-- 支持自定义提示词
-- 生成历史记录管理
+## 睡眠模式分析
 
-### 🎤 语音转文字
-- 支持多种音频格式 (MP3, WAV, M4A, OGG, WEBM)
-- 高精度语音识别
-- 支持多语言识别
-- 最大支持16MB文件
+- 默认分析最近 30 天，以每次睡眠的起床日归属夜晚；明确标记的午睡不进入夜间报告；
+- 同时存在多个健康数据源时优先使用 HealthMi 写入的同源样本，避免与 Apple Watch 等来源重复；若没有 HealthMi 样本，则回退分析 Apple 健康中的已有睡眠；
+- 重复或重叠分期通过时间轴扫描合并，同一时段只计入一个阶段；阶段优先级为清醒、深睡、REM、核心、未细分睡眠；
+- 趋势分由时长 50%、睡眠效率 30%、连续性 20% 形成逐晚分，再与 30 天规律性按 75%/25% 汇总；用户可把目标时长设为 6–10 小时；
+- 入睡和起床时间使用圆周统计，因此 23:50 与 00:10 会被识别为相近时间，而不是相差近 24 小时。
 
-### 📊 数据分析与可视化
-- 智能数据分析
-- 自动生成可视化图表
-- 支持多种图表类型
-- AI驱动的数据洞察
+该分析只用于个人趋势观察，不提供医学诊断或治疗建议。
 
-### 📝 历史记录管理
-- 完整的操作历史追踪
-- 分类浏览和搜索
-- 一键回顾和复用
+## 目录结构
 
-## 🛠 技术栈
+```
+project.yml          XcodeGen 工程定义（改配置后 xcodegen generate 重新生成）
+HealthMi/
+  App/               入口、引导、主界面、Keychain 凭据、App 状态
+    DataExporter      CSV 数据导出
+    DayDetailView     每日详情页
+    SyncHistoryView   同步历史日志
+    SyncIntent        App Intents / 快捷指令
+    TrendChartView    Swift Charts 趋势图
+  MiFitness/         小米云 API 的 Swift 移植（Crypto/Session/API/Models/Parser/Region）
+  Health/            HealthKit 授权、幂等写入器、数据映射、读取器
+  Sleep/             睡眠会话去重、模式分析、HealthKit 适配与 SwiftUI 分析页
+  Sync/              同步引擎、SwiftData 游标、后台任务、压力存储、日志、迁移
+  Support/           Info.plist、HealthKit entitlement、通知管理、统一日志
+  Resources/         资源（AppIcon 等）
+HealthMiTests/       加密向量 / 解析 / 映射 / 引擎 / 游标 / 区域 单测
+tools/               已验证的 Python 参考实现（mi-fitness-mcp-cn）
+```
 
-### 前端
-- **框架**: React 19
-- **语言**: TypeScript
-- **样式**: Tailwind CSS 4
-- **UI组件**: shadcn/ui
-- **状态管理**: tRPC React Query
-- **路由**: Wouter
-- **图表**: Chart.js
+## 前置条件
 
-### 后端
-- **运行时**: Node.js 22
-- **框架**: Express 4
-- **API**: tRPC 11
-- **认证**: Manus OAuth
-- **数据序列化**: SuperJSON
+- Xcode 16+（Swift 6.0）
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen)（`brew install xcodegen`）
+- iOS 17.0+（部署目标）
+- 真机写入 HealthKit 需要付费开发者账号
 
-### 数据库
-- **数据库**: MySQL / TiDB
-- **ORM**: Drizzle ORM
-- **迁移**: Drizzle Kit
-
-### AI集成
-- **LLM**: 内置大语言模型服务
-- **图像生成**: 内置图像生成服务
-- **语音识别**: Whisper API
-
-### 开发工具
-- **构建工具**: Vite 7
-- **包管理**: pnpm
-- **代码规范**: ESLint + Prettier
-- **测试**: Vitest
-
-## 🚀 快速开始
-
-### 在线演示
-
-无需安装,直接访问在线演示: **[https://aiwebapp-jhbfakeb.manus.space](https://aiwebapp-jhbfakeb.manus.space)**
-
-### 本地开发
-
-### 前置要求
-
-- Node.js >= 22.0.0
-- pnpm >= 10.0.0
-- MySQL 8.0+ 或 TiDB
-
-### 安装
+## 构建与测试
 
 ```bash
-# 克隆仓库
-git clone https://github.com/Hygge8/web_test.git
-cd web_test
+# 生成工程（首次或改 project.yml 后）
+xcodegen generate
 
-# 安装依赖
-pnpm install
+# 编译（iOS 模拟器）
+xcodebuild -project HealthMi.xcodeproj -scheme HealthMi \
+  -destination 'generic/platform=iOS Simulator' build
 
-# 配置环境变量
-cp .env.example .env
-# 编辑 .env 文件,填入必要的配置
+# 运行单测（对某一台已创建的模拟器）
+xcodebuild -project HealthMi.xcodeproj -scheme HealthMi \
+  -destination 'platform=iOS Simulator,name=iPhone 17' test
 
-# 初始化数据库
-pnpm db:push
-
-# 启动开发服务器
-pnpm dev
+# 真机构建（需自己的开发团队）
+xcodebuild -project HealthMi.xcodeproj -scheme HealthMi \
+  -destination 'platform=iOS,id=<设备UDID>' \
+  DEVELOPMENT_TEAM=<团队ID> -allowProvisioningUpdates build
 ```
 
-应用将在 http://localhost:3000 启动。
+## 使用
 
-## 📁 项目结构
+真机签名与安装步骤见 [中文安装指南](docs/INSTALL_zh-CN.md)。
 
-```
-web_test/
-├── client/                 # 前端代码
-│   ├── public/            # 静态资源
-│   └── src/
-│       ├── components/    # UI组件
-│       ├── pages/         # 页面组件
-│       ├── hooks/         # 自定义Hooks
-│       ├── lib/           # 工具库
-│       └── contexts/      # React上下文
-├── server/                # 后端代码
-│   ├── _core/            # 核心功能
-│   ├── db.ts             # 数据库查询
-│   └── routers.ts        # tRPC路由
-├── drizzle/              # 数据库Schema和迁移
-│   └── schema.ts         # 数据表定义
-├── shared/               # 前后端共享代码
-├── storage/              # S3存储辅助函数
-└── package.json
-```
+1. 首次打开 App，通过 WebView 登录小米账号，或手动输入 `userId` / `passToken`；
+2. 同意 HealthKit 读写权限；
+3. 在账号区域选择所在区域（默认中国大陆）；
+4. 点「立即增量同步」，选择首次回填天数（7/30/90/全部）；
+5. 之后在「健康」App 里即可看到小米设备的数据；
+6. 日常使用：打开 App 点同步，或依赖后台自动同步；
+7. 在趋势区域查看 7 天图表，点击某天进入每日详情；
+8. 进入「睡眠模式分析」查看最近 30 天的时长、效率、规律性、分期和趋势提示；
+9. 点击导航栏时钟图标查看同步历史日志；
+10. 数据导出区域可导出 CSV。
 
-## 🔐 环境变量
+## 注意事项
 
-项目使用以下环境变量(由Manus平台自动注入):
+- **非官方接口**：本项目通过小米**非官方私有 API**（`account.xiaomi.com` / `hlth.io.mi.com`）读取数据，非小米官方产品，接口随时可能变更或失效；请自行评估使用风险，勿高频请求。`passToken` 等同账号凭证，请妥善保管，本项目仅在设备本地 Keychain 中保存，不会上传。
+- **passToken 有效期短**：过期后同步会报「登录被拒绝（code=70016）」，重新登录 account.xiaomi.com 复制新 token 更新即可。
+- **HealthKit 仅 iOS 可用**：原生 macOS App 无法写 HealthKit（需 Mac Catalyst + entitlement），因此本方案做成纯 iOS。
+- **后台同步**：已接入 `BGAppRefreshTask`（每小时周期刷新），模拟器不触发，需真机验证。用户从多任务划掉 App 后后台任务不触发，直到再次打开 App。
+- **真机部署**：把 `project.yml` 里的 `PRODUCT_BUNDLE_IDENTIFIER` 换成你自己的，并在 Xcode 中配置开发团队（HealthKit entitlement 需要付费开发者账号）。
+- **运动记录**：用 `HKWorkoutBuilder` 构建（iOS 17 起旧 `HKWorkout` 构造器已废弃）；关联平均/最大心率样本（不与日总计重复计数）；不关联能量/距离样本，避免与每日活动总量重复计算。
+- **压力数据**：从小米云端读取 stress key，存入 App 内 SwiftData 展示（不写入 HealthKit，因其无对应类型）。
+- **API 健壮性**：网络错误自动重试（指数退避 + 抖动，最多 3 次），分页请求间 200ms 间隔避免限流，认证错误（code=70016）不重试。
+- **睡眠趋势分不是医疗结论**：趋势分只综合时长、效率、夜间清醒和作息规律，用于自我观察，不诊断睡眠障碍。若持续出现明显不适、憋醒或呼吸异常，请咨询专业医务人员。
 
-```env
-# 数据库
-DATABASE_URL=mysql://...
+## 测试说明
 
-# 认证
-JWT_SECRET=...
-OAUTH_SERVER_URL=...
-VITE_OAUTH_PORTAL_URL=...
+`MiCryptoTests` 使用 `tools/mi-fitness-mcp-cn`（已验证的 Python 实现）作为"预言机"生成固定向量，保证 Swift 移植的 RC4/签名算法与 Python 逐字节一致，不依赖网络。`SleepAnalyzerTests` 覆盖跨午夜、重复/重叠分期、作息波动和午睡排除；`SyncEngineTests` 验证窗口计算逻辑（首次/增量/回填），`SyncStateStoreTests` 验证游标记录与清除，`MiRegionTests` 验证区域配置。可选的真实 API 集成测试需要提供有效凭据，未包含在默认单测中。
 
-# AI服务
-BUILT_IN_FORGE_API_URL=...
-BUILT_IN_FORGE_API_KEY=...
+## 许可证
 
-# 应用配置
-VITE_APP_TITLE=AI原生Web应用
-VITE_APP_LOGO=...
-```
+本项目以 **Apache License 2.0** 开源，详见 [LICENSE](LICENSE) 与 [NOTICE](NOTICE)。
 
-## 💻 开发指南
+内置参考工具 [mi-fitness-mcp-cn](tools/mi-fitness-mcp-cn) 使用 **MIT License** 发布（Copyright © 2026 Aleksej Kubulashvili），详见 [tools/mi-fitness-mcp-cn/LICENSE](tools/mi-fitness-mcp-cn/LICENSE)。
 
-### 开发命令
+## 更新日志
 
-```bash
-# 启动开发服务器
-pnpm dev
-
-# 构建生产版本
-pnpm build
-
-# 运行生产服务器
-pnpm start
-
-# 数据库迁移
-pnpm db:push
-
-# 代码格式化
-pnpm format
-
-# 运行测试
-pnpm test
-```
-
-### 添加新功能
-
-1. **定义数据库Schema** (`drizzle/schema.ts`)
-2. **创建数据库查询函数** (`server/db.ts`)
-3. **添加tRPC路由** (`server/routers.ts`)
-4. **创建前端页面** (`client/src/pages/`)
-5. **更新路由配置** (`client/src/App.tsx`)
-
-### 代码规范
-
-项目遵循以下代码规范:
-
-- 使用TypeScript进行类型安全开发
-- 遵循ESLint和Prettier配置
-- 使用tRPC确保前后端类型同步
-- 组件使用函数式编程风格
-- 优先使用shadcn/ui组件
-
-## 📚 API文档
-
-### tRPC路由
-
-#### 认证 (`auth`)
-- `auth.me` - 获取当前用户信息
-- `auth.logout` - 退出登录
-
-#### 对话 (`chat`)
-- `chat.createConversation` - 创建新对话
-- `chat.getConversations` - 获取对话列表
-- `chat.getMessages` - 获取对话消息
-- `chat.sendMessage` - 发送消息
-- `chat.deleteConversation` - 删除对话
-
-#### 内容生成 (`generate`)
-- `generate.text` - 生成文本
-- `generate.image` - 生成图像
-- `generate.getHistory` - 获取生成历史
-
-#### 语音转录 (`transcription`)
-- `transcription.create` - 创建转录
-- `transcription.getHistory` - 获取转录历史
-
-#### 数据分析 (`analysis`)
-- `analysis.create` - 创建分析
-- `analysis.getHistory` - 获取分析历史
-- `analysis.getById` - 获取指定分析
-
-#### 存储 (`storage`)
-- `storage.uploadAudio` - 上传音频文件
-- `storage.uploadDataFile` - 上传数据文件(CSV/Excel)
-
-#### 通知 (`notifications`)
-- `notifications.getNotifications` - 获取通知列表
-- `notifications.getUnreadCount` - 获取未读数量
-- `notifications.markAsRead` - 标记为已读
-- `notifications.delete` - 删除通知
-
-## 🚢 部署
-
-### 使用Manus平台部署
-
-1. 保存项目检查点
-2. 点击"发布"按钮
-3. 配置域名(可选)
-4. 完成部署
-
-### 手动部署
-
-```bash
-# 构建项目
-pnpm build
-
-# 设置环境变量
-export DATABASE_URL=...
-export JWT_SECRET=...
-# ... 其他环境变量
-
-# 启动生产服务器
-pnpm start
-```
-
-## 🤝 贡献指南
-
-我们欢迎所有形式的贡献!请查看 [CONTRIBUTING.md](CONTRIBUTING.md) 了解详细信息。
-
-### 贡献流程
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启Pull Request
-
-## 📄 许可证
-
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
-
-## 🙏 致谢
-
-- [React](https://react.dev/) - 前端框架
-- [tRPC](https://trpc.io/) - 端到端类型安全API
-- [Tailwind CSS](https://tailwindcss.com/) - CSS框架
-- [shadcn/ui](https://ui.shadcn.com/) - UI组件库
-- [Drizzle ORM](https://orm.drizzle.team/) - TypeScript ORM
-- [Manus](https://manus.im/) - AI原生应用平台
-
-## 📞 联系方式
-
-- 项目仓库: [https://github.com/Hygge8/web_test](https://github.com/Hygge8/web_test)
-- 问题反馈: [Issues](https://github.com/Hygge8/web_test/issues)
-
----
-
-<div align="center">
-
-**[⬆ 回到顶部](#ai原生web应用)**
-
-Made with ❤️ by [Hygge8](https://github.com/Hygge8)
-
-</div>
-
+详见 [CHANGELOG.md](CHANGELOG.md)。

@@ -1,95 +1,78 @@
 # 更新日志
 
-所有重要的项目变更都将记录在此文件中。
+本文件记录 HealthMi 的版本变更。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)。
 
-本项目遵循[语义化版本](https://semver.org/lang/zh-CN/)规范。
-
-## [1.0.0] - 2025-10-27
+## [1.2.0] - 2026-08-20
 
 ### 新增
-- ✨ AI智能对话功能
-  - 支持创建多个对话会话
-  - 实时流式响应
-  - 对话历史自动保存
-  - 对话删除功能
 
-- 🎨 智能内容生成功能
-  - 文本内容生成
-  - AI图像生成
-  - 自定义提示词支持
-  - 生成历史记录
+- **30 天睡眠模式分析**：趋势分、平均睡眠时长、效率、平均入睡/起床时间和规律性
+- **睡眠结构汇总**：核心/深度/REM 分期占比、最近 7 晚明细和夜间清醒次数
+- **个性化目标**：支持 6–10 小时睡眠目标，趋势分和提示随目标重新计算
+- **模式提示**：根据时长缺口、效率、作息波动、夜间清醒和近期变化生成可执行提示
+- **睡眠算法单测**：覆盖跨午夜、重复分期去重、作息波动和午睡排除
+- **iOS CI**：GitHub Actions 自动生成工程、构建模拟器版本并运行单元测试
 
-- 🎤 语音转文字功能
-  - 支持多种音频格式(MP3, WAV, M4A, OGG, WEBM)
-  - 高精度语音识别
-  - 多语言支持
-  - 最大16MB文件上传
+### 修复
 
-- 📊 数据分析与可视化
-  - 智能数据分析
-  - 自动生成图表
-  - Chart.js集成
-  - AI驱动的数据洞察
+- 睡眠趋势改为按起床日归属，避免跨午夜的分期被拆到两天
+- 同时存在 HealthMi 与 Apple Watch 睡眠时，优先使用 HealthMi 同源样本，避免重复统计
+- 重叠或重复睡眠分期通过时间轴扫描去重，不再导致睡眠时长翻倍
+- 回填只识别 `mi_fitness_` 前缀样本，避免误删其他 App 写入的 HealthKit 数据
 
-- 📝 历史记录管理
-  - 文本生成历史
-  - 图像生成历史
-  - 语音转录历史
-  - 分类浏览功能
+### 说明
 
-- 🔐 用户认证系统
-  - Manus OAuth集成
-  - 用户角色管理
-  - 会话管理
+- 趋势分用于自我观察，不作为医疗诊断；分期占比不参与疾病判断
 
-- 🎨 现代化UI设计
-  - 响应式布局
-  - 深色/浅色主题支持
-  - Dashboard侧边栏导航
-  - shadcn/ui组件库
+## [1.1.0] - 2026-08-16
 
-### 技术实现
-- React 19 + TypeScript
-- Tailwind CSS 4
-- tRPC 11端到端类型安全
-- Drizzle ORM数据库管理
-- Express后端服务
-- MySQL/TiDB数据库
-- S3对象存储集成
+### 新增
 
-### 文档
-- 📚 完整的README文档
-- 📝 贡献指南(CONTRIBUTING.md)
-- 📄 MIT许可证
-- 📋 项目结构说明
-- 🔧 环境配置指南
+- **多区域支持**：支持中国大陆/俄罗斯/欧洲/国际/新加坡/美国六个区域，自动适配 API 域名和时区，Dashboard 区域选择器
+- **Swift Charts 趋势图**：7 天步数/心率/睡眠/HRV 趋势可视化（`HKStatisticsCollectionQuery` 按天查询）
+- **每日详情页**：点击趋势图中任一天查看当日全部数据 + 压力记录明细
+- **同步历史日志**：持久化每次类型同步的结果（成功/失败/拉取数/新增数），`SyncHistoryView` 列表展示，自动裁剪 200 条
+- **同步失败通知**：后台同步失败时发送本地通知，`NotificationManager` 管理授权与发送
+- **数据导出**：一键导出最近 7 天每日数据为 CSV，通过系统分享面板发送
+- **App Intents / 快捷指令**：通过 Siri 或快捷指令触发同步（"同步 HealthMi 健康数据"）
+- **压力数据同步**：新增 `SyncDataType.stress`，从云端拉取压力数据存入 SwiftData，Dashboard 展示 7 天平均压力
+- **身体指标补全**：新增写入 BMI（`bodyMassIndex`）、肌肉量（`leanBodyMass`）、基础代谢（`basalEnergyBurned`）
+- **运动记录心率**：运动记录关联平均/最大心率样本（`HKWorkoutBuilder` + `store.add(_:to:)`）
+- **同步进度文字**：显示"正在同步 3/9"
+- **HealthKit 授权实时检测**：每次同步前检查权限状态，被撤销时提示用户
+- **统一日志**：`AppLog` 枚举集中管理所有 `os.Logger` 实例
+- **SwiftData 迁移策略**：`SchemaV1` + `MigrationPlan`，为未来 schema 变更建立基础设施
+- **测试覆盖**：新增 `SyncEngineTests`（窗口计算）、`SyncStateStoreTests`（游标+区域配置）
 
-## [未发布]
+### 修复
 
-### 计划中
-- [ ] 用户个人资料管理
-- [ ] 更多AI模型选择
-- [ ] 批量操作功能
-- [ ] 导出功能增强
-- [ ] 多语言界面支持
-- [ ] 移动端优化
-- [ ] PWA支持
-- [ ] 实时协作功能
+- **后台同步失效**：Info.plist 添加 `BGTaskSchedulerPermittedIdentifiers`，统一 BG Task ID 为 `com.healthmi.HealthMi.sync`，`try?` 改为 do/catch + 日志
+- **Sleep 数据重复下载**：SyncEngine 内缓存，sleep/呼吸频率/HRV 共享同一份睡眠原始数据（从 3 次降为 1 次）
+- **退出登录不重置游标**：`disconnect()` 清除所有 `SyncState` 游标和压力记录
+- **API 无重试/限流**：网络错误指数退避重试（最多 3 次），分页间 200ms 间隔，认证错误不重试，新增 HTTP 状态码检查
+- **try? 静默吞错**：`SyncStateStore` 和 `BackgroundSync` 的 save/submit 错误改为 do/catch + Logger
+- **睡眠去重边界漏洞**：`HealthWriter` 从 `.strictStartDate/.strictEndDate` 改为软边界
+- **Keychain service 迁移**：从旧 `com.example.HealthMi` 一次性迁移到新 `com.healthmi.HealthMi`
+- **后台同步任务取消**：存储 sync Task 引用，`expirationHandler` 中 `cancel()`，`syncAll` 检查 `Task.isCancelled`
 
----
+### 优化
 
-## 版本说明
+- **HealthKitReader 并行查询**：4 个独立统计查询用 `async let` 并行执行
+- **标识符统一**：`project.yml` 的 `bundleIdPrefix` 和测试 bundle ID 从 `com.example` 改为 `com.healthmi`
+- **MCP 工具 SQLite 性能**：连接复用 + WAL 模式 + `executemany` 批量插入
+- **MCP 工具 0 值修正**：`_optional_float`/`_optional_int` 不再把 0 当 None
+- **MCP 工具请求限流**：`iter_*` 方法间 200ms 间隔，可配置 `min_request_interval_seconds`
+- **MCP 工具清理死配置**：删除未引用的 `auto_sync_on_start`/`stale_after_minutes`/`store_raw_payloads`
 
-### 版本号格式
-- **主版本号**: 不兼容的API修改
-- **次版本号**: 向下兼容的功能性新增
-- **修订号**: 向下兼容的问题修正
+## [1.0.0] - 2026-08-14
 
-### 更新类型
-- `新增`: 新功能
-- `修改`: 现有功能的变更
-- `弃用`: 即将移除的功能
-- `移除`: 已移除的功能
-- `修复`: Bug修复
-- `安全`: 安全相关的修复
+### 首次开源发布
 
+- Swift 移植 `mi-fitness-mcp-cn` 取数逻辑
+- 8 类数据同步：日常活动、心率、睡眠、血氧、体重/体脂、运动记录
+- WebView 登录小米账号 + 手动 Cookie 输入
+- 增量同步 + 7/30/90/全部 回填
+- 幂等写入（`HKMetadataKeyExternalUUID` 去重）
+- Keychain 凭据存储
+- `BGAppRefreshTask` 后台同步
+- 加密向量单测（RC4/SHA256/SHA1 预言机测试）

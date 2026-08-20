@@ -1,0 +1,43 @@
+name: iOS Build and Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Build for simulator
+        run: >-
+          xcodebuild
+          -project HealthMi.xcodeproj
+          -scheme HealthMi
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO
+          build
+
+      - name: Run unit tests
+        run: >-
+          xcodebuild
+          -project HealthMi.xcodeproj
+          -scheme HealthMi
+          -destination 'platform=iOS Simulator,name=iPhone 16 Pro'
+          CODE_SIGNING_ALLOWED=NO
+          test
