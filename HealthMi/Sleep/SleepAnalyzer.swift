@@ -11,8 +11,8 @@ enum SleepStageKind: String, CaseIterable, Sendable, Hashable {
 
     var isAsleep: Bool {
         switch self {
-        case .core, .deep, .rem, .asleepUnspecified: true
-        case .inBed, .awake: false
+        case .core, .deep, .rem, .asleepUnspecified: return true
+        case .inBed, .awake: return false
         }
     }
 }
@@ -116,28 +116,28 @@ struct SleepPatternReport: Sendable, Hashable {
 
     var scoreLabel: String {
         switch overallScore {
-        case 85...: "稳定"
-        case 70..<85: "良好"
-        case 55..<70: "有波动"
-        default: "需关注"
+        case 85...: return "稳定"
+        case 70..<85: return "良好"
+        case 55..<70: return "有波动"
+        default: return "需关注"
         }
     }
 
     var regularityLabel: String {
         guard let regularityScore else { return "数据不足" }
         switch regularityScore {
-        case 85...: "很规律"
-        case 70..<85: "较规律"
-        case 50..<70: "有波动"
-        default: "波动较大"
+        case 85...: return "很规律"
+        case 70..<85: return "较规律"
+        case 50..<70: return "有波动"
+        default: return "波动较大"
         }
     }
 
     var confidenceLabel: String {
         switch nights.count {
-        case 14...: "数据充分"
-        case 7..<14: "数据一般"
-        default: "数据较少"
+        case 14...: return "数据充分"
+        case 7..<14: return "数据一般"
+        default: return "数据较少"
         }
     }
 }
@@ -449,12 +449,12 @@ enum SleepAnalyzer {
 
     private static func priority(_ stage: SleepStageKind) -> Int {
         switch stage {
-        case .awake: 6
-        case .deep: 5
-        case .rem: 4
-        case .core: 3
-        case .asleepUnspecified: 2
-        case .inBed: 1
+        case .awake: return 6
+        case .deep: return 5
+        case .rem: return 4
+        case .core: return 3
+        case .asleepUnspecified: return 2
+        case .inBed: return 1
         }
     }
 

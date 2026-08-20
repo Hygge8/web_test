@@ -473,22 +473,22 @@ private struct SleepNightDetailView: View {
 private extension SleepStageKind {
     var displayName: String {
         switch self {
-        case .inBed: "卧床"
-        case .awake: "清醒"
-        case .core: "核心睡眠"
-        case .deep: "深度睡眠"
-        case .rem: "REM 睡眠"
-        case .asleepUnspecified: "未细分睡眠"
+        case .inBed: return "卧床"
+        case .awake: return "清醒"
+        case .core: return "核心睡眠"
+        case .deep: return "深度睡眠"
+        case .rem: return "REM 睡眠"
+        case .asleepUnspecified: return "未细分睡眠"
         }
     }
 
     var color: Color {
         switch self {
-        case .inBed: .gray
-        case .awake: .orange
-        case .core, .asleepUnspecified: .cyan
-        case .deep: .indigo
-        case .rem: .purple
+        case .inBed: return .gray
+        case .awake: return .orange
+        case .core, .asleepUnspecified: return .cyan
+        case .deep: return .indigo
+        case .rem: return .purple
         }
     }
 }
@@ -496,17 +496,17 @@ private extension SleepStageKind {
 private extension SleepInsightTone {
     var icon: String {
         switch self {
-        case .positive: "checkmark.circle.fill"
-        case .attention: "exclamationmark.circle.fill"
-        case .neutral: "info.circle.fill"
+        case .positive: return "checkmark.circle.fill"
+        case .attention: return "exclamationmark.circle.fill"
+        case .neutral: return "info.circle.fill"
         }
     }
 
     var color: Color {
         switch self {
-        case .positive: .green
-        case .attention: .orange
-        case .neutral: .blue
+        case .positive: return .green
+        case .attention: return .orange
+        case .neutral: return .blue
         }
     }
 }
