@@ -4,16 +4,14 @@ import XCTest
 
 @MainActor
 final class SyncStateStoreTests: XCTestCase {
-    private var container: ModelContainer!
-    private var context: ModelContext!
-
-    override func setUp() {
-        super.setUp()
+    // XCTest 的同步 `setUp()` 是 nonisolated，Swift 6 下不能在其中修改
+    // `@MainActor` 的 SwiftData 状态。每个测试实例用惰性属性创建独立内存容器。
+    private lazy var container: ModelContainer = {
         let schema = Schema([SyncState.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-        container = try! ModelContainer(for: schema, configurations: [config])
-        context = container.mainContext
-    }
+        return try! ModelContainer(for: schema, configurations: [config])
+    }()
+    private lazy var context: ModelContext = container.mainContext
 
     func testRecordUpdatesState() {
         let type: SyncDataType = .heartRate
